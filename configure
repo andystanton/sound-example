@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+function createMakefile() {
+    root_makefile='
+.PHONY: execute_example_make
+
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+current_dir := $(dir $(mkfile_path))
+
+execute_example_make:
+	$(MAKE) -C ${current_dir}build
+
+prerequisites: execute_example_make
+
+target: prerequisites
+'
+
+    echo "${root_makefile}" >Makefile
+}
+
+mkdir -p build && pushd build >/dev/null
+
+if grep -qe '^MSYS_' <<<"$(uname -s)"; then
+    generator_override='-G "MSYS Makefiles"'
+fi
+
+cmake "${generator_override}" .. && popd && createMakefile
