@@ -57,8 +57,9 @@ int main(int argc, char ** argv)
                         }
                 }
                 util::changemode(0);
-        } catch (const char * error)
-        {
+        } catch (const char * error) {
+            cerr << "Caught error: " << error << endl;
+        } catch (const string error) {
             cerr << "Caught error: " << error << endl;
         }
 

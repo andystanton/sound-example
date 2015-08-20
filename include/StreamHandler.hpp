@@ -3,7 +3,8 @@
 #include "AudioFile.hpp"
 
 #include "sndfile.h"
-#include "portaudio.h"
+#include "al.h"
+#include "alc.h"
 
 #if defined (__linux__)
     #include <cstdlib> // required for putenv.
@@ -11,9 +12,11 @@
 
 #include <cstring>
 #include <sstream>
+#include <string>
 #include <vector>
 
 using std::stringstream;
+using std::string;
 using std::vector;
 
 struct Playback
@@ -38,17 +41,8 @@ class StreamHandler
                           AudioFile * audioFile = nullptr,
                           bool loop = false);
 
-        static int PortAudioCallback(const void * input,
-                                     void * output,
-                                     unsigned long frameCount,
-                                     const PaStreamCallbackTimeInfo * paTimeInfo,
-                                     PaStreamCallbackFlags statusFlags,
-                                     void * userData);
     private:
-        const int CHANNEL_COUNT = 2;
-        const int SAMPLE_RATE = 44000;
-        const PaStreamParameters * NO_INPUT = nullptr;
-
-        PaStream * stream;
+        ALCdevice * device;
+        ALCcontext * context;
         vector<Playback *> data;
 };

@@ -1,0 +1,3 @@
+[submodule "lib/openal"]
+	path = lib/openal
+	url = https://github.com/kcat/openal-soft.git
