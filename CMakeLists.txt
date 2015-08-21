@@ -6,7 +6,7 @@ INCLUDE(ExternalProject)
 ExternalProject_Add(project_libsndfile
     GIT_REPOSITORY      https://github.com/erikd/libsndfile.git
     PREFIX              lib/libsndfile
-    CONFIGURE_COMMAND   <SOURCE_DIR>/configure && <SOURCE_DIR>/autogen.sh
+    CONFIGURE_COMMAND   <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure
     BUILD_COMMAND       make
     INSTALL_COMMAND     echo Skipping install step for libsndfile
     UPDATE_COMMAND      ""

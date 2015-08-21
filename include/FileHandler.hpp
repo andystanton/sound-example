@@ -4,12 +4,14 @@
 #include "util.hpp"
 
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 
 using std::map;
 using std::string;
 using std::stringstream;
+using std::unique_ptr;
 
 class FileHandler
 {

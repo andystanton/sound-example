@@ -2,8 +2,14 @@
 
 #include "sndfile.h"
 
+#include <array>
+#include <vector>
+
+using std::array;
+using std::vector;
+
 struct AudioFile
 {
-        SNDFILE * data;
         SF_INFO info;
+        vector<uint16_t> vdata;
 };
