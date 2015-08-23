@@ -31,6 +31,10 @@ ELSE()
     ADD_SUBDIRECTORY(lib/openal)
 ENDIF()
 
+SET(ALURE_INCLUDE_DIR lib/alure/include/AL)
+SET(ALURE_LIBRARY alure2_s)
+ADD_SUBDIRECTORY(lib/alure)
+
 SET(SOURCE_FILES
     src/main.cpp
     src/util.cpp
@@ -38,7 +42,7 @@ SET(SOURCE_FILES
     src/StreamHandler.cpp
     src/AudioPlayer.cpp)
 
-INCLUDE_DIRECTORIES(include ${libsndfile_inc_dir} ${OPENAL_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(include ${libsndfile_inc_dir} ${OPENAL_INCLUDE_DIR} ${ALURE_INCLUDE_DIR})
 
 ADD_EXECUTABLE(sound-example ${SOURCE_FILES})
 
@@ -46,7 +50,7 @@ SET_TARGET_PROPERTIES(sound-example
                       PROPERTIES
                       CXX_STANDARD 14)
 
-TARGET_LINK_LIBRARIES(sound-example ${OPENAL_LIBRARY} libsndfile)
+TARGET_LINK_LIBRARIES(sound-example ${OPENAL_LIBRARY} libsndfile ${ALURE_LIBRARY})
 
 ADD_CUSTOM_COMMAND(TARGET sound-example PRE_BUILD
                     COMMAND ${CMAKE_COMMAND} -E

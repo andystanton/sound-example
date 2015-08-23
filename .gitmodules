@@ -1,3 +1,6 @@
 [submodule "lib/openal"]
 	path = lib/openal
 	url = https://github.com/kcat/openal-soft.git
+[submodule "lib/alure"]
+	path = lib/alure
+	url = git://repo.or.cz/alure.git

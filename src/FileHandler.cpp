@@ -28,8 +28,8 @@ AudioFile & FileHandler::getSound(string filename)
                 SNDFILE * audioFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
 
                 array<int16_t, 4096> read_buf;
-                size_t read_size;
                 vector<uint16_t> vdata;
+                size_t read_size;
 
                 while((read_size = sf_read_short(audioFile, read_buf.data(), read_buf.size())) != 0) {
                         vdata.insert(vdata.end(), read_buf.begin(), read_buf.begin() + read_size);

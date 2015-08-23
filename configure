@@ -24,4 +24,6 @@ if grep -qe '^MSYS_' <<<"$(uname -s)"; then
     generator_override='-G "MSYS Makefiles"'
 fi
 
-cmake "${generator_override}" .. && popd && createMakefile
+cmake "${generator_override}" .. -DCMAKE_CXX_FLAGS="-stdlib=libstdc++" \
+    && popd \
+    && createMakefile
