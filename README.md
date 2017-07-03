@@ -8,7 +8,6 @@ The plethora of build requirements are courtesy of the build process for libsndf
 
 ### Source Control
 
-- svn
 - git
 
 ### Build
@@ -22,3 +21,14 @@ The plethora of build requirements are courtesy of the build process for libsndf
 - libtool
 - pkg-config
 - python
+
+## Build Instructions
+
+```bash
+$ git clone --recursive https://github.com/andystanton/sound-example.git
+$ cd sound-example
+$ ./configure
+$ make
+```
+
+The example executable should now be located in `build/sound-example`.

@@ -7,12 +7,12 @@ int StreamHandler::PortAudioCallback(const void * input,
                                      PaStreamCallbackFlags statusFlags,
                                      void * userData)
 {
-        StreamHandler * handler = (StreamHandler *) userData;
+        auto * handler = (StreamHandler *) userData;
 
         unsigned long stereoFrameCount = frameCount * handler->CHANNEL_COUNT;
         memset((int *) output, 0, stereoFrameCount * sizeof(int));
 
-        if (handler->data.size() > 0)
+        if (!handler->data.empty())
         {
                 auto it = handler->data.begin();
                 while (it != handler->data.end())
@@ -20,10 +20,10 @@ int StreamHandler::PortAudioCallback(const void * input,
                         Playback * data = (*it);
                         AudioFile * audioFile = data->audioFile;
 
-                        int * outputBuffer = new int[stereoFrameCount];
+                        auto * outputBuffer = new int[stereoFrameCount];
                         int * bufferCursor = outputBuffer;
 
-                        unsigned int framesLeft = (unsigned int) frameCount;
+                        auto framesLeft = (unsigned int) frameCount;
                         unsigned int framesRead;
 
                         bool playbackEnded = false;
@@ -81,6 +81,8 @@ int StreamHandler::PortAudioCallback(const void * input,
                         {
                                 ++it;
                         }
+
+                        delete[] outputBuffer;
                 }
         }
         return paContinue;

@@ -1,0 +1,6 @@
+[submodule "lib/libsndfile"]
+	path = lib/libsndfile
+	url = https://github.com/erikd/libsndfile.git
+[submodule "lib/portaudio"]
+	path = lib/portaudio
+	url = git://git.assembla.com/portaudio.git
