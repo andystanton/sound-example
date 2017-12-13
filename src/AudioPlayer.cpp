@@ -7,18 +7,18 @@ AudioPlayer::AudioPlayer()
 
 }
 
-void AudioPlayer::play(string soundfile)
+void AudioPlayer::play(const std::string & soundfile)
 {
-        streamHandler.processEvent(AudioEventType::start, &fileHandler.getSound(soundfile));
+    streamHandler.processEvent(AudioEventType::start, &fileHandler.getSound(soundfile));
 }
 
-void AudioPlayer::loop(string soundfile)
+void AudioPlayer::loop(const std::string & soundfile)
 {
-        streamHandler.processEvent(AudioEventType::start, &fileHandler.getSound(soundfile), true);
+    streamHandler.processEvent(AudioEventType::start, &fileHandler.getSound(soundfile), true);
 
 }
 
 void AudioPlayer::stop()
 {
-        streamHandler.processEvent(AudioEventType::stop);
+    streamHandler.processEvent(AudioEventType::stop);
 }

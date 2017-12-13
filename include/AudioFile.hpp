@@ -4,6 +4,6 @@
 
 struct AudioFile
 {
-        SNDFILE * data;
-        SF_INFO info;
+    SNDFILE * data;
+    SF_INFO info;
 };

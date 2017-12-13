@@ -12,8 +12,8 @@ The plethora of build requirements are courtesy of the build process for libsndf
 
 ### Build
 
-- c++14 compiler
-- cmake >= 3.2.2
+- C++14 compiler
+- cmake >= 3.6
 - make
 - autoconf
 - automake
@@ -29,6 +29,5 @@ $ git clone --recursive https://github.com/andystanton/sound-example.git
 $ cd sound-example
 $ ./configure
 $ make
+$ make run
 ```
-
-The example executable should now be located in `build/sound-example`.
