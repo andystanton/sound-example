@@ -1,27 +1,31 @@
 #!/usr/bin/env bash
 
+if grep -qe '^MSYS_' <<<"$(uname -s)"; then
+    generator_override='-G "MSYS Makefiles"'
+fi
+
 function createMakefile() {
     root_makefile='
-.PHONY: execute_example_make
+.PHONY : all clean build run
 
-mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
-current_dir := $(dir $(mkfile_path))
+build_path = build
+bin_path = $(build_path)/bin
+bin_name = sound-example
 
-execute_example_make:
-	$(MAKE) -C ${current_dir}build
+all: | build
 
-prerequisites: execute_example_make
+clean:
+	@rm -rf $(build_path)
 
-target: prerequisites
+build:
+	@mkdir -p $(build_path)
+	@cd $(build_path) && cmake'" ${generator_override}"' .. && make -j4;
+
+run: build
+	@cd $(bin_path) && ./$(bin_name);
 '
 
     echo "${root_makefile}" >Makefile
 }
 
-mkdir -p build && pushd build >/dev/null
-
-if grep -qe '^MSYS_' <<<"$(uname -s)"; then
-    generator_override='-G "MSYS Makefiles"'
-fi
-
-cmake "${generator_override}" .. && popd && createMakefile
+createMakefile

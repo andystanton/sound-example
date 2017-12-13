@@ -1,40 +1,71 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.6)
-PROJECT(sound-example)
+cmake_minimum_required(VERSION 3.6)
 
-ADD_SUBDIRECTORY(lib/libsndfile)
-ADD_SUBDIRECTORY(lib/portaudio)
+project(sound-example)
 
-IF(APPLE)
-   FIND_LIBRARY(CORE_AUDIO_LIBRARY CoreAudio)
-   FIND_LIBRARY(AUDIO_TOOLBOX_LIBRARY AudioToolbox)
-   FIND_LIBRARY(AUDIO_UNIT_LIBRARY AudioUnit)
-   FIND_LIBRARY(CARBON_LIBRARY Carbon)
-   SET(EXTRA_LIBS ${CORE_AUDIO_LIBRARY} ${AUDIO_TOOLBOX_LIBRARY} ${AUDIO_UNIT_LIBRARY} ${CARBON_LIBRARY})
-ENDIF (APPLE)
+set(CMAKE_CXX_STANDARD 14)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
-IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-   SET(EXTRA_LIBS rt asound jack pthread)
-ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+add_subdirectory(lib/libsndfile)
+add_subdirectory(lib/portaudio)
 
-SET(SOURCE_FILES
-    src/main.cpp
-    src/util.cpp
-    src/FileHandler.cpp
-    src/StreamHandler.cpp
-    src/AudioPlayer.cpp)
+if (APPLE)
+    find_library(CORE_AUDIO_LIBRARY CoreAudio)
+    find_library(AUDIO_TOOLBOX_LIBRARY AudioToolbox)
+    find_library(AUDIO_UNIT_LIBRARY AudioUnit)
+    find_library(CARBON_LIBRARY Carbon)
+    set(
+            EXTRA_LIBS
+            ${CORE_AUDIO_LIBRARY}
+            ${AUDIO_TOOLBOX_LIBRARY}
+            ${AUDIO_UNIT_LIBRARY}
+            ${CARBON_LIBRARY}
+    )
+endif (APPLE)
 
-get_target_property(LIBSNDFILE_INCLUDES sndfile-static PUBLIC_HEADER)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(
+            EXTRA_LIBS
+            rt
+            asound
+            jack
+            pthread
+    )
+endif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
-INCLUDE_DIRECTORIES(include ${LIBSNDFILE_INCLUDES} ${PA_PUBLIC_INCLUDES})
+set(
+        SOURCE_FILES
+        src/main.cpp
+        src/util.cpp
+        src/FileHandler.cpp
+        src/StreamHandler.cpp
+        src/AudioPlayer.cpp
+)
 
-ADD_EXECUTABLE(sound-example ${SOURCE_FILES})
+get_target_property(
+        LIBSNDFILE_INCLUDES
+        sndfile-static
+        PUBLIC_HEADER
+)
 
-SET_TARGET_PROPERTIES(sound-example
-                      PROPERTIES
-                      CXX_STANDARD 14)
+include_directories(
+        include
+        ${LIBSNDFILE_INCLUDES}
+        ${PA_PUBLIC_INCLUDES}
+)
 
-TARGET_LINK_LIBRARIES(sound-example ${EXTRA_LIBS} sndfile-static portaudio)
+add_executable(
+        sound-example
+        ${SOURCE_FILES}
+)
 
-ADD_CUSTOM_COMMAND(TARGET sound-example PRE_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E
-                    copy_directory "${CMAKE_SOURCE_DIR}/sounds" "${CMAKE_BINARY_DIR}/sounds")
+target_link_libraries(
+        sound-example
+        ${EXTRA_LIBS}
+        sndfile-static
+        portaudio
+)
+
+add_custom_command(
+        TARGET sound-example
+        PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/sounds" "${EXECUTABLE_OUTPUT_PATH}/sounds"
+)
