@@ -9,7 +9,7 @@ An example of asynchronous sound playback in C++ with PortAudio and libsndfile.
 - CMake >= 3.6
 - make
 
-## Build Instructions
+## Instructions
 
 ```sh
 $ git clone --recursive https://github.com/andystanton/sound-example.git
