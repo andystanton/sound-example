@@ -2,6 +2,7 @@
 #include "util.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 using std::endl;
 using std::cout;
