@@ -1,4 +1,5 @@
 #include "util.hpp"
+#include <stdexcept>
 
 std::string util::getApplicationPathAndName()
 {

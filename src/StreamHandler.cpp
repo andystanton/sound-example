@@ -1,6 +1,8 @@
 #include "StreamHandler.hpp"
 
 #include <sstream>
+#include <cstring>
+#include <stdexcept>
 
 int StreamHandler::PortAudioCallback(
         const void * input,
@@ -14,7 +16,7 @@ int StreamHandler::PortAudioCallback(
     auto * handler = (StreamHandler *) userData;
 
     unsigned long stereoFrameCount = frameCount * handler->CHANNEL_COUNT;
-    memset((int *) output, 0, stereoFrameCount * sizeof(int));
+    std::memset((int *) output, 0, stereoFrameCount * sizeof(int));
 
     if (!handler->data.empty()) {
         auto it = handler->data.begin();
@@ -110,7 +112,7 @@ StreamHandler::StreamHandler()
 {
 
 #if defined (__linux__)
-    putenv("PULSE_LATENCY_MSEC=10")
+    putenv("PULSE_LATENCY_MSEC=10");
 #endif
 
     Pa_Initialize();
