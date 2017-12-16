@@ -45,6 +45,12 @@ std::string util::getApplicationPath()
     return fullPath.substr(0, fullPath.find_last_of('/'));
 }
 
+std::string util::getApplicationPath(const std::string & relativePath)
+{
+    std::string fullPath = getApplicationPathAndName();
+    return fullPath.substr(0, fullPath.find_last_of('/')) + relativePath;
+}
+
 #if !defined (_WIN32) && !defined (_WIN64)
 
 void changemode(int dir)

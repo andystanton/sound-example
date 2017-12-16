@@ -8,7 +8,6 @@
 class FileHandler
 {
 public:
-    FileHandler();
     ~FileHandler();
 
     bool containsSound(const std::string & filename);

@@ -45,7 +45,7 @@ public:
     );
 private:
     const int CHANNEL_COUNT = 2;
-    const int SAMPLE_RATE = 44000;
+    const unsigned long SAMPLE_RATE = 44000;
     const PaStreamParameters * NO_INPUT = nullptr;
 
     PaStream * stream;

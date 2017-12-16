@@ -1,8 +1,6 @@
 #include "StreamHandler.hpp"
 
 #include <sstream>
-#include <cstring>
-#include <stdexcept>
 
 int StreamHandler::PortAudioCallback(
         const void * input,
@@ -87,7 +85,12 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
     switch (audioEventType) {
         case start:
             if (Pa_IsStreamStopped(stream)) {
-                Pa_StartStream(stream);
+                PaError startError = Pa_StartStream(stream);
+                if (startError) {
+                    std::stringstream errorMessage;
+                    errorMessage << "Unable to start PortAudio stream (" << startError << ": " << Pa_GetErrorText(startError) << ")";
+                    throw std::runtime_error(errorMessage.str());
+                }
             }
             data.push_back(
                     new Playback {
@@ -98,7 +101,12 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
             );
             break;
         case stop:
-            Pa_StopStream(stream);
+            PaError stopError = Pa_StopStream(stream);
+            if (stopError) {
+                std::stringstream errorMessage;
+                errorMessage << "Unable to stop PortAudio stream (" << stopError << ": " << Pa_GetErrorText(stopError) << ")";
+                throw std::runtime_error(errorMessage.str());
+            }
             for (auto * instance : data) {
                 delete instance;
             }
@@ -115,8 +123,17 @@ StreamHandler::StreamHandler()
     putenv("PULSE_LATENCY_MSEC=10");
 #endif
 
-    Pa_Initialize();
-    PaError errorCode;
+    PaError startError = Pa_Initialize();
+    if (startError) {
+        std::stringstream errorMessage;
+        errorMessage << "Unable to initialise PortAudio (" << startError << ": " << Pa_GetErrorText(startError) << ")";
+        PaError terminateError = Pa_Terminate();
+        if (terminateError) {
+            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        }
+        throw std::runtime_error(errorMessage.str());
+    }
+
     PaStreamParameters outputParameters {};
 
     outputParameters.device = Pa_GetDefaultOutputDevice();
@@ -125,7 +142,7 @@ StreamHandler::StreamHandler()
     outputParameters.suggestedLatency = 0.01;
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
-    errorCode = Pa_OpenStream(
+    PaError openStreamError = Pa_OpenStream(
             &stream,
             NO_INPUT,
             &outputParameters,
@@ -136,20 +153,36 @@ StreamHandler::StreamHandler()
             this
     );
 
-    if (errorCode) {
-        Pa_Terminate();
-
-        std::stringstream error;
-        error << "Unable to open stream for output. PortAudio error code: " << errorCode;
-        throw std::runtime_error(error.str());
+    if (openStreamError) {
+        std::stringstream errorMessage;
+        errorMessage << "Unable to open PortAudio stream for output (" << openStreamError << ": " << Pa_GetErrorText(openStreamError) << ")";
+        PaError terminateError = Pa_Terminate();
+        if (terminateError) {
+            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        }
+        throw std::runtime_error(errorMessage.str());
     }
 }
 
 StreamHandler::~StreamHandler()
 {
-    Pa_CloseStream(stream);
-    for (auto * wrapper : data) {
-        delete wrapper;
+    processEvent(AudioEventType::stop);
+
+    PaError closeStreamError = Pa_CloseStream(stream);
+    if (closeStreamError) {
+        std::stringstream errorMessage;
+        errorMessage << "Unable to close PortAudio stream (" << closeStreamError << ": " << Pa_GetErrorText(closeStreamError) << ")";
+        PaError terminateError = Pa_Terminate();
+        if (terminateError) {
+            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        }
+        throw std::runtime_error(errorMessage.str());
     }
-    Pa_Terminate();
+
+    PaError terminateError = Pa_Terminate();
+    if (terminateError) {
+        std::stringstream errorMessage;
+        errorMessage << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        throw std::runtime_error(errorMessage.str());
+    }
 }

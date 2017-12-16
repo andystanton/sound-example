@@ -27,6 +27,7 @@ namespace util
 {
     std::string getApplicationPathAndName();
     std::string getApplicationPath();
+    std::string getApplicationPath(const std::string &);
 }
 
 #if !defined (_WIN32) && !defined (_WIN64)

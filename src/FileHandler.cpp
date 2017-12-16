@@ -2,19 +2,14 @@
 
 #include "util.hpp"
 
-#include <sstream>
-
-FileHandler::FileHandler()
-        : sounds()
-{
-
-}
+#include <stdexcept>
 
 FileHandler::~FileHandler()
 {
     for (auto & entry : sounds) {
         sf_close(entry.second.data);
     }
+    sounds.clear();
 }
 
 bool FileHandler::containsSound(const std::string & filename)
@@ -25,9 +20,8 @@ bool FileHandler::containsSound(const std::string & filename)
 AudioFile & FileHandler::getSound(const std::string & filename)
 {
     if (!containsSound(filename)) {
-        std::string fullFilename = util::getApplicationPath() + "/sounds/" + filename;
-        SF_INFO info {};
-        info.format = 0;
+        std::string fullFilename = util::getApplicationPath("/sounds/" + filename);
+        SF_INFO info { 0 };
         SNDFILE * audioFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
 
         AudioFile sound {
@@ -36,10 +30,7 @@ AudioFile & FileHandler::getSound(const std::string & filename)
         };
 
         if (!audioFile) {
-            std::stringstream error;
-            error << "Unable to open audio file '" << filename
-                  << "' with full filename '" << fullFilename << "'";
-            throw error.str();
+            throw std::runtime_error("Unable to open audio file '" + filename + "' with full filename '" + fullFilename + "'");
         }
         sounds[filename] = sound;
     }

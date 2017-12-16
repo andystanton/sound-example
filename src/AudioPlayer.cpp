@@ -1,12 +1,5 @@
 #include "AudioPlayer.hpp"
 
-AudioPlayer::AudioPlayer()
-        : fileHandler()
-        , streamHandler()
-{
-
-}
-
 void AudioPlayer::play(const std::string & soundfile)
 {
     streamHandler.processEvent(AudioEventType::start, &fileHandler.getSound(soundfile));
