@@ -46,7 +46,7 @@ public:
 private:
     const int CHANNEL_COUNT = 2;
     const unsigned long SAMPLE_RATE = 44000;
-    const PaStreamParameters * NO_INPUT = nullptr;
+    const PaStreamParameters * NO_INPUT = NULL;
 
     PaStream * stream;
     std::vector<Playback> data;

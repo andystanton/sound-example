@@ -136,17 +136,17 @@ StreamHandler::StreamHandler()
 
     outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = CHANNEL_COUNT;
-    outputParameters.sampleFormat = paInt32;
+    outputParameters.sampleFormat = paFloat32;
     outputParameters.suggestedLatency = 0.01;
-    outputParameters.hostApiSpecificStreamInfo = nullptr;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
 
-    PaError openStreamError = Pa_OpenDefaultStream(
+    PaError openStreamError = Pa_OpenStream(
             &stream,
-            0,
-            CHANNEL_COUNT,
-            paFloat32,
+            NO_INPUT,
+            &outputParameters,
             SAMPLE_RATE,
-            256,
+            paFramesPerBufferUnspecified,
+            paNoFlag,
             &PortAudioCallback,
             this
     );
