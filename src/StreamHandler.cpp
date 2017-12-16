@@ -24,8 +24,8 @@ int StreamHandler::PortAudioCallback(
             Playback & data = *it;
             AudioFile * audioFile = data.audioFile;
 
-            int outputBuffer[stereoFrameCount];
-            int * bufferCursor = outputBuffer;
+            float outputBuffer[stereoFrameCount];
+            float * bufferCursor = outputBuffer;
 
             auto framesLeft = (unsigned int) frameCount;
             unsigned int framesRead;
@@ -47,14 +47,14 @@ int StreamHandler::PortAudioCallback(
                     data.position += framesRead;
                 }
 
-                sf_readf_int(audioFile->data, bufferCursor, framesRead);
+                sf_readf_float(audioFile->data, bufferCursor, framesRead);
 
                 bufferCursor += framesRead;
 
                 framesLeft -= framesRead;
             }
 
-            auto * outputCursor = (int *) output;
+            auto * outputCursor = (float *) output;
             if (audioFile->info.channels == 1) {
                 for (unsigned long i = 0; i < stereoFrameCount; ++i) {
                     *outputCursor += (0.5 * outputBuffer[i]);
@@ -144,7 +144,7 @@ StreamHandler::StreamHandler()
             &stream,
             0,
             CHANNEL_COUNT,
-            paInt32,
+            paFloat32,
             SAMPLE_RATE,
             256,
             &PortAudioCallback,
