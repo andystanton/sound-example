@@ -166,6 +166,8 @@ StreamHandler::~StreamHandler()
 {
     processEvent(AudioEventType::stop);
 
+    Pa_Sleep(1000);
+
     PaError closeStreamError = Pa_CloseStream(stream);
     if (closeStreamError) {
         std::stringstream errorMessage;
