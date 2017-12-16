@@ -103,16 +103,18 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
             );
             break;
         case stop:
-            PaError stopError = Pa_StopStream(stream);
-            if (stopError) {
-                std::stringstream errorMessage;
-                errorMessage << "Unable to stop PortAudio stream (" << stopError << ": " << Pa_GetErrorText(stopError) << ")";
-                throw std::runtime_error(errorMessage.str());
+            if (!Pa_IsStreamStopped(stream)) {
+                PaError stopError = Pa_StopStream(stream);
+                if (stopError) {
+                    std::stringstream errorMessage;
+                    errorMessage << "Unable to stop PortAudio stream (" << stopError << ": " << Pa_GetErrorText(stopError) << ")";
+                    throw std::runtime_error(errorMessage.str());
+                }
+                for (auto * instance : data) {
+                    delete instance;
+                }
+                data.clear();
             }
-            for (auto * instance : data) {
-                delete instance;
-            }
-            data.clear();
             break;
     }
 }
