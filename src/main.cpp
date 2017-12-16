@@ -13,7 +13,7 @@ int main(int argc, char ** argv)
     try {
         AudioPlayer player;
 
-        cout << "Playback with portaudio and libsndfile" << endl << endl;
+        cout << "Playback with PortAudio and libsndfile" << endl << endl;
 
         cout << "Options: " << endl;
         cout << " O: stereo sound" << endl;
@@ -58,6 +58,7 @@ int main(int argc, char ** argv)
         changemode(0);
     } catch (const std::runtime_error & error) {
         cerr << "Caught error: " << error.what() << endl;
+        return 1;
     }
 
     return 0;
