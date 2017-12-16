@@ -49,5 +49,5 @@ private:
     const PaStreamParameters * NO_INPUT = nullptr;
 
     PaStream * stream;
-    std::vector<Playback *> data;
+    std::vector<Playback> data;
 };

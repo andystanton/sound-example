@@ -21,8 +21,8 @@ int StreamHandler::PortAudioCallback(
     if (!handler->data.empty()) {
         auto it = handler->data.begin();
         while (it != handler->data.end()) {
-            Playback * data = *it;
-            AudioFile * audioFile = data->audioFile;
+            Playback & data = *it;
+            AudioFile * audioFile = data.audioFile;
 
             auto * outputBuffer = new int[stereoFrameCount];
             int * bufferCursor = outputBuffer;
@@ -32,19 +32,19 @@ int StreamHandler::PortAudioCallback(
 
             bool playbackEnded = false;
             while (framesLeft > 0) {
-                sf_seek(audioFile->data, data->position, SEEK_SET);
+                sf_seek(audioFile->data, data.position, SEEK_SET);
 
-                if (framesLeft > (audioFile->info.frames - data->position)) {
-                    framesRead = (unsigned int) (audioFile->info.frames - data->position);
-                    if (data->loop) {
-                        data->position = 0;
+                if (framesLeft > (audioFile->info.frames - data.position)) {
+                    framesRead = (unsigned int) (audioFile->info.frames - data.position);
+                    if (data.loop) {
+                        data.position = 0;
                     } else {
                         playbackEnded = true;
                         framesLeft = framesRead;
                     }
                 } else {
                     framesRead = framesLeft;
-                    data->position += framesRead;
+                    data.position += framesRead;
                 }
 
                 sf_readf_int(audioFile->data, bufferCursor, framesRead);
@@ -71,7 +71,6 @@ int StreamHandler::PortAudioCallback(
 
             if (playbackEnded) {
                 it = handler->data.erase(it);
-                delete data;
             } else {
                 ++it;
             }
@@ -95,7 +94,7 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
                 }
             }
             data.push_back(
-                    new Playback {
+                    Playback {
                             audioFile,
                             0,
                             loop
@@ -109,9 +108,6 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
                     std::stringstream errorMessage;
                     errorMessage << "Unable to stop PortAudio stream (" << stopError << ": " << Pa_GetErrorText(stopError) << ")";
                     throw std::runtime_error(errorMessage.str());
-                }
-                for (auto * instance : data) {
-                    delete instance;
                 }
                 data.clear();
             }
