@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
+SET(PA_PRIVATE_COMPILE_DEFINITIONS PA_ENABLE_DEBUG_OUTPUT PA_LOG_API_CALLS)
+
 add_subdirectory(lib/libsndfile)
 add_subdirectory(lib/portaudio)
 
