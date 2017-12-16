@@ -164,7 +164,7 @@ StreamHandler::StreamHandler()
 
 StreamHandler::~StreamHandler()
 {
-    processEvent(AudioEventType::stop);
+//    processEvent(AudioEventType::stop);
 
     Pa_Sleep(1000);
 
