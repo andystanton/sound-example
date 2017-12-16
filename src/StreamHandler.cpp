@@ -1,6 +1,8 @@
 #include "StreamHandler.hpp"
 
 #include <sstream>
+#include <cstring>
+#include <stdexcept>
 
 int StreamHandler::PortAudioCallback(
         const void * input,
