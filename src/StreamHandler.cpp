@@ -118,7 +118,7 @@ StreamHandler::StreamHandler()
 {
 
 #if defined (__linux__)
-    putenv("PULSE_LATENCY_MSEC=10");
+    putenv((char *) "PULSE_LATENCY_MSEC=10");
 #endif
 
     wrapPortAudioCallOrTerminate("initialize", []() { return Pa_Initialize(); });
