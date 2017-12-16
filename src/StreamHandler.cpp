@@ -121,16 +121,7 @@ StreamHandler::StreamHandler()
     putenv("PULSE_LATENCY_MSEC=10");
 #endif
 
-    PaError startError = Pa_Initialize();
-    if (startError) {
-        std::stringstream errorMessage;
-        errorMessage << "Unable to initialise PortAudio (" << startError << ": " << Pa_GetErrorText(startError) << ")";
-        PaError terminateError = Pa_Terminate();
-        if (terminateError) {
-            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
-        }
-        throw std::runtime_error(errorMessage.str());
-    }
+    wrapPortAudioCallOrTerminate("initialize", []() { return Pa_Initialize(); });
 
     PaStreamParameters outputParameters {};
 
@@ -138,49 +129,51 @@ StreamHandler::StreamHandler()
     outputParameters.channelCount = CHANNEL_COUNT;
     outputParameters.sampleFormat = paFloat32;
     outputParameters.suggestedLatency = 0.01;
-    outputParameters.hostApiSpecificStreamInfo = NULL;
+    outputParameters.hostApiSpecificStreamInfo = nullptr;
 
-    PaError openStreamError = Pa_OpenStream(
-            &stream,
-            NO_INPUT,
-            &outputParameters,
-            SAMPLE_RATE,
-            paFramesPerBufferUnspecified,
-            paNoFlag,
-            &PortAudioCallback,
-            this
-    );
-
-    if (openStreamError) {
-        std::stringstream errorMessage;
-        errorMessage << "Unable to open PortAudio stream for output (" << openStreamError << ": " << Pa_GetErrorText(openStreamError) << ")";
-        PaError terminateError = Pa_Terminate();
-        if (terminateError) {
-            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
-        }
-        throw std::runtime_error(errorMessage.str());
-    }
+    wrapPortAudioCallOrTerminate("open", [&]() {
+        return Pa_OpenStream(
+                &stream,
+                NO_INPUT,
+                &outputParameters,
+                SAMPLE_RATE,
+                paFramesPerBufferUnspecified,
+                paNoFlag,
+                &PortAudioCallback,
+                this
+        );
+    });
 }
 
 StreamHandler::~StreamHandler()
 {
 //    processEvent(AudioEventType::stop);
 
-    PaError closeStreamError = Pa_CloseStream(stream);
-    if (closeStreamError) {
+    wrapPortAudioCallOrTerminate("close", [&]() { return Pa_CloseStream(stream); });
+    wrapPortAudioCall("terminate", []() { return Pa_Terminate(); });
+    stream = nullptr;
+}
+
+void StreamHandler::wrapPortAudioCall(const std::string & description, const std::function<PaError()> & f)
+{
+    PaError error = f();
+    if (error != paNoError) {
         std::stringstream errorMessage;
-        errorMessage << "Unable to close PortAudio stream (" << closeStreamError << ": " << Pa_GetErrorText(closeStreamError) << ")";
-        PaError terminateError = Pa_Terminate();
-        if (terminateError) {
-            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
-        }
+        errorMessage << "Unable to execute PortAudio command " << description << " (" << error << ": " << Pa_GetErrorText(error) << ")";
         throw std::runtime_error(errorMessage.str());
     }
+}
 
-    PaError terminateError = Pa_Terminate();
-    if (terminateError) {
+void StreamHandler::wrapPortAudioCallOrTerminate(const std::string & description, const std::function<PaError()> & f)
+{
+    PaError error = f();
+    if (error != paNoError) {
         std::stringstream errorMessage;
-        errorMessage << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        errorMessage << "Unable to close PortAudio command " << description << " (" << error << ": " << Pa_GetErrorText(error) << ")";
+        PaError terminateError = Pa_Terminate();
+        if (terminateError != paNoError) {
+            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        }
         throw std::runtime_error(errorMessage.str());
     }
 }

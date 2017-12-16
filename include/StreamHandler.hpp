@@ -10,6 +10,7 @@
 #endif
 
 #include <vector>
+#include <functional>
 
 struct Playback
 {
@@ -46,7 +47,9 @@ public:
 private:
     const int CHANNEL_COUNT = 2;
     const unsigned long SAMPLE_RATE = 44000;
-    const PaStreamParameters * NO_INPUT = NULL;
+    const PaStreamParameters * NO_INPUT = nullptr;
+    void wrapPortAudioCall(const std::string &, const std::function<PaError()> &);
+    void wrapPortAudioCallOrTerminate(const std::string &, const std::function<PaError()> &);
 
     PaStream * stream;
     std::vector<Playback> data;
