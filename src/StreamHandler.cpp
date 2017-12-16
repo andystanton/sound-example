@@ -140,13 +140,13 @@ StreamHandler::StreamHandler()
     outputParameters.suggestedLatency = 0.01;
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
-    PaError openStreamError = Pa_OpenStream(
+    PaError openStreamError = Pa_OpenDefaultStream(
             &stream,
-            NO_INPUT,
-            &outputParameters,
+            0,
+            CHANNEL_COUNT,
+            paInt32,
             SAMPLE_RATE,
-            paFramesPerBufferUnspecified,
-            paNoFlag,
+            256,
             &PortAudioCallback,
             this
     );
@@ -165,8 +165,6 @@ StreamHandler::StreamHandler()
 StreamHandler::~StreamHandler()
 {
 //    processEvent(AudioEventType::stop);
-
-    Pa_Sleep(1000);
 
     PaError closeStreamError = Pa_CloseStream(stream);
     if (closeStreamError) {
