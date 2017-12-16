@@ -24,7 +24,7 @@ int StreamHandler::PortAudioCallback(
             Playback & data = *it;
             AudioFile * audioFile = data.audioFile;
 
-            auto * outputBuffer = new int[stereoFrameCount];
+            int outputBuffer[stereoFrameCount];
             int * bufferCursor = outputBuffer;
 
             auto framesLeft = (unsigned int) frameCount;
@@ -74,8 +74,6 @@ int StreamHandler::PortAudioCallback(
             } else {
                 ++it;
             }
-
-            delete[] outputBuffer;
         }
     }
     return paContinue;
