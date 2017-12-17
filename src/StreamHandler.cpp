@@ -85,12 +85,7 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
         case start:
             if (Pa_IsStreamStopped(stream)) {
                 data.clear();
-                PaError startError = Pa_StartStream(stream);
-                if (startError) {
-                    std::stringstream errorMessage;
-                    errorMessage << "Unable to start PortAudio stream (" << startError << ": " << Pa_GetErrorText(startError) << ")";
-                    throw std::runtime_error(errorMessage.str());
-                }
+                wrapPortAudioCall("start stream", [&]() { return Pa_StartStream(stream); });
             }
             if (data.size() <= 2) {
                 data.push_back(
@@ -104,12 +99,7 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
             break;
         case stop:
             if (!Pa_IsStreamStopped(stream)) {
-                PaError stopError = Pa_StopStream(stream);
-                if (stopError) {
-                    std::stringstream errorMessage;
-                    errorMessage << "Unable to stop PortAudio stream (" << stopError << ": " << Pa_GetErrorText(stopError) << ")";
-                    throw std::runtime_error(errorMessage.str());
-                }
+                wrapPortAudioCall("stop stream", [&]() { return Pa_StopStream(stream); });
                 data.clear();
             }
             break;
