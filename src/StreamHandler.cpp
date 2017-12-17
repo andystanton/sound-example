@@ -84,6 +84,7 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
     switch (audioEventType) {
         case start:
             if (Pa_IsStreamStopped(stream)) {
+                data.clear();
                 PaError startError = Pa_StartStream(stream);
                 if (startError) {
                     std::stringstream errorMessage;
@@ -91,13 +92,15 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
                     throw std::runtime_error(errorMessage.str());
                 }
             }
-            data.push_back(
-                    Playback {
-                            audioFile,
-                            0,
-                            loop
-                    }
-            );
+            if (data.size() <= 2) {
+                data.push_back(
+                        Playback {
+                                audioFile,
+                                0,
+                                loop
+                        }
+                );
+            }
             break;
         case stop:
             if (!Pa_IsStreamStopped(stream)) {
