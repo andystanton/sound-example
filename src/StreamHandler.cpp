@@ -137,7 +137,7 @@ StreamHandler::StreamHandler()
                 NO_INPUT,
                 &outputParameters,
                 SAMPLE_RATE,
-                256,
+                paFramesPerBufferUnspecified,
                 paNoFlag,
                 &PortAudioCallback,
                 this
