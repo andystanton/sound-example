@@ -4,9 +4,8 @@ if grep -qe '^MSYS_' <<<"$(uname -s)"; then
     generator_override='-G "MSYS Makefiles"'
 fi
 
-function createMakefile() {
-    root_makefile='
-.PHONY : all clean build run
+function create_makefile() {
+    root_makefile='.PHONY : all clean build run
 
 build_path = build
 bin_path = $(build_path)/bin
@@ -28,4 +27,4 @@ run: build
     echo "${root_makefile}" >Makefile
 }
 
-createMakefile
+create_makefile

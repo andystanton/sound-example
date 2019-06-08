@@ -32,7 +32,7 @@ namespace util
 
 #if !defined (_WIN32) && !defined (_WIN64)
 
-void changemode(int dir);
+void initTerminal();
 int kbhit();
 
 #endif

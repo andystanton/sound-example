@@ -21,7 +21,8 @@ struct Playback
 
 enum AudioEventType
 {
-    start, stop
+    start,
+    stop,
 };
 
 class StreamHandler
@@ -31,26 +32,28 @@ public:
     ~StreamHandler();
 
     void processEvent(
-            AudioEventType audioEventType,
-            AudioFile * audioFile = nullptr,
-            bool loop = false
+        AudioEventType audioEventType,
+        AudioFile * audioFile = nullptr,
+        bool loop = false
     );
 
     static int PortAudioCallback(
-            const void * input,
-            void * output,
-            unsigned long frameCount,
-            const PaStreamCallbackTimeInfo * paTimeInfo,
-            PaStreamCallbackFlags statusFlags,
-            void * userData
+        const void * input,
+        void * output,
+        unsigned long frameCount,
+        const PaStreamCallbackTimeInfo * paTimeInfo,
+        PaStreamCallbackFlags statusFlags,
+        void * userData
     );
+
 private:
     const int CHANNEL_COUNT = 2;
     const unsigned long SAMPLE_RATE = 44000;
     const PaStreamParameters * NO_INPUT = nullptr;
-    void wrapPortAudioCall(const std::string &, const std::function<PaError()> &);
-    void wrapPortAudioCallOrTerminate(const std::string &, const std::function<PaError()> &);
+
+    static void wrapPortAudioCall(const std::string &, const std::function<PaError()> &);
+    static void wrapPortAudioCallOrTerminate(const std::string &, const std::function<PaError()> &);
 
     PaStream * stream;
-    std::vector<Playback> data;
+    std::vector<Playback> playingSounds;
 };

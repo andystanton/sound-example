@@ -23,12 +23,12 @@ int main(int argc, char ** argv)
 
         cout << "Press 'Q' to quit" << endl;
 
-        int ch;
-        changemode(1);
+        initTerminal();
 
-        for (bool done = false; !done; ) {
-            if (!kbhit()) {
-                ch = getchar();
+        bool done = false;
+        while (!done) {
+            if (kbhit()) {
+                int ch = getchar();
                 switch (ch) {
                     case 'q':
                     case 'Q':
@@ -55,7 +55,7 @@ int main(int argc, char ** argv)
                 }
             }
         }
-        changemode(0);
+        player.stop();
     } catch (const std::runtime_error & error) {
         cerr << "Caught error: " << error.what() << endl;
         return 1;

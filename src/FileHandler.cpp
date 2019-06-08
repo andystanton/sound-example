@@ -6,27 +6,30 @@
 
 FileHandler::~FileHandler()
 {
-    for (auto & entry : sounds) {
-        sf_close(entry.second.data);
+    for (auto & [k, v] : sounds) {
+        sf_close(v.data);
     }
     sounds.clear();
 }
 
 bool FileHandler::containsSound(const std::string & filename)
 {
-    return sounds.find(filename) != sounds.end();
+    bool found = sounds.find(filename) != sounds.end();
+    return found;
 }
 
 AudioFile & FileHandler::getSound(const std::string & filename)
 {
     if (!containsSound(filename)) {
         std::string fullFilename = util::getApplicationPath("/sounds/" + filename);
-        SF_INFO info { 0 };
+        SF_INFO info {
+            .frames = 0
+        };
         SNDFILE * audioFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
 
         AudioFile sound {
-                audioFile,
-                info
+            audioFile,
+            info
         };
 
         if (!audioFile) {
@@ -34,5 +37,6 @@ AudioFile & FileHandler::getSound(const std::string & filename)
         }
         sounds[filename] = sound;
     }
-    return sounds[filename];
+    auto & file = sounds[filename];
+    return file;
 }

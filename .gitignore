@@ -2,3 +2,4 @@ build
 Makefile
 .idea
 cmake-build-debug
+Makefile

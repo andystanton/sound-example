@@ -1,5 +1,6 @@
 #include "util.hpp"
 #include <stdexcept>
+#include <iostream>
 
 std::string util::getApplicationPathAndName()
 {
@@ -53,17 +54,30 @@ std::string util::getApplicationPath(const std::string & relativePath)
 
 #if !defined (_WIN32) && !defined (_WIN64)
 
-void changemode(int dir)
-{
-    static struct termios oldt, newt;
+static struct termios oldTermios;
 
-    if (dir == 1) {
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
-        newt.c_lflag &= ~(ICANON | ECHO);
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+void cleanupTermios()
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &oldTermios);
+}
+
+void initTerminal()
+{
+    tcgetattr(STDIN_FILENO, &oldTermios);
+
+    struct termios newTermios = oldTermios;
+
+    newTermios.c_lflag &= ~ICANON;
+    newTermios.c_lflag &= ~ECHO;
+    newTermios.c_cc[VMIN] = 0;
+    newTermios.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newTermios);
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &newTermios) == 0) {
+        atexit(cleanupTermios);
     } else {
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        std::cerr << "Unable to set terminal mode" << std::endl;
+        exit(1);
     }
 }
 

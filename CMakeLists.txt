@@ -1,12 +1,18 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.7)
 
 project(sound-example)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(PA_PRIVATE_COMPILE_DEFINITIONS PA_ENABLE_DEBUG_OUTPUT PA_LOG_API_CALLS)
+
+SET(BUILD_TESTING OFF CACHE BOOL "")
+SET(BUILD_EXAMPLES OFF CACHE BOOL "")
+SET(BUILD_REGTEST OFF CACHE BOOL "")
+SET(BUILD_PROGRAMS OFF CACHE BOOL "")
+SET(ENABLE_CPACK OFF CACHE BOOL "")
 
 add_subdirectory(lib/libsndfile)
 add_subdirectory(lib/portaudio)
@@ -46,7 +52,7 @@ set(
 
 get_target_property(
         LIBSNDFILE_INCLUDES
-        sndfile-static
+        sndfile
         PUBLIC_HEADER
 )
 
@@ -64,7 +70,7 @@ add_executable(
 target_link_libraries(
         sound-example
         ${EXTRA_LIBS}
-        sndfile-static
+        sndfile
         portaudio
 )
 

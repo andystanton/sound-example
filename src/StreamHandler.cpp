@@ -3,14 +3,15 @@
 #include <sstream>
 #include <cstring>
 #include <stdexcept>
+#include <iostream>
 
 int StreamHandler::PortAudioCallback(
-        const void * input,
-        void * output,
-        unsigned long frameCount,
-        const PaStreamCallbackTimeInfo * paTimeInfo,
-        PaStreamCallbackFlags statusFlags,
-        void * userData
+    const void * input,
+    void * output,
+    unsigned long frameCount,
+    const PaStreamCallbackTimeInfo * paTimeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void * userData
 )
 {
     auto * handler = (StreamHandler *) userData;
@@ -18,9 +19,9 @@ int StreamHandler::PortAudioCallback(
     unsigned long stereoFrameCount = frameCount * handler->CHANNEL_COUNT;
     std::memset((int *) output, 0, stereoFrameCount * sizeof(int));
 
-    if (!handler->data.empty()) {
-        auto it = handler->data.begin();
-        while (it != handler->data.end()) {
+    if (!handler->playingSounds.empty()) {
+        auto it = handler->playingSounds.begin();
+        while (it != handler->playingSounds.end()) {
             Playback & data = *it;
             AudioFile * audioFile = data.audioFile;
 
@@ -70,7 +71,7 @@ int StreamHandler::PortAudioCallback(
             }
 
             if (playbackEnded) {
-                it = handler->data.erase(it);
+                it = handler->playingSounds.erase(it);
             } else {
                 ++it;
             }
@@ -84,30 +85,30 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
     switch (audioEventType) {
         case start:
             if (Pa_IsStreamStopped(stream)) {
-                data.clear();
+                playingSounds.clear();
                 wrapPortAudioCall("start stream", [&]() { return Pa_StartStream(stream); });
             }
-            if (data.size() <= 2) {
-                data.push_back(
-                        Playback {
-                                audioFile,
-                                0,
-                                loop
-                        }
+            if (playingSounds.size() <= 2) {
+                playingSounds.push_back(
+                    Playback {
+                        .audioFile = audioFile,
+                        .position = 0,
+                        .loop = loop,
+                    }
                 );
             }
             break;
         case stop:
             if (!Pa_IsStreamStopped(stream)) {
                 wrapPortAudioCall("stop stream", [&]() { return Pa_StopStream(stream); });
-                data.clear();
+                playingSounds.clear();
             }
             break;
     }
 }
 
 StreamHandler::StreamHandler()
-        : data()
+    : playingSounds()
 {
 
 #if defined (__linux__)
@@ -116,31 +117,31 @@ StreamHandler::StreamHandler()
 
     wrapPortAudioCallOrTerminate("initialize", []() { return Pa_Initialize(); });
 
-    PaStreamParameters outputParameters {};
-
-    outputParameters.device = Pa_GetDefaultOutputDevice();
-    outputParameters.channelCount = CHANNEL_COUNT;
-    outputParameters.sampleFormat = paFloat32;
-    outputParameters.suggestedLatency = 0.01;
-    outputParameters.hostApiSpecificStreamInfo = nullptr;
+    PaStreamParameters outputParameters {
+        .device = Pa_GetDefaultOutputDevice(),
+        .channelCount = CHANNEL_COUNT,
+        .sampleFormat = paFloat32,
+        .suggestedLatency = 0.01,
+        .hostApiSpecificStreamInfo = nullptr,
+    };
 
     wrapPortAudioCallOrTerminate("open", [&]() {
         return Pa_OpenStream(
-                &stream,
-                NO_INPUT,
-                &outputParameters,
-                SAMPLE_RATE,
-                paFramesPerBufferUnspecified,
-                paNoFlag,
-                &PortAudioCallback,
-                this
+            &stream,
+            NO_INPUT,
+            &outputParameters,
+            SAMPLE_RATE,
+            paFramesPerBufferUnspecified,
+            paNoFlag,
+            &PortAudioCallback,
+            this
         );
     });
 }
 
 StreamHandler::~StreamHandler()
 {
-//    processEvent(AudioEventType::stop);
+    processEvent(AudioEventType::stop);
 
     wrapPortAudioCallOrTerminate("close", [&]() { return Pa_CloseStream(stream); });
     wrapPortAudioCall("terminate", []() { return Pa_Terminate(); });
