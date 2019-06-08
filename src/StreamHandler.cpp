@@ -4,6 +4,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <iostream>
+#include <util.hpp>
 
 int StreamHandler::PortAudioCallback(
     const void * input,
@@ -86,7 +87,7 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
         case start:
             if (Pa_IsStreamStopped(stream)) {
                 playingSounds.clear();
-                wrapPortAudioCall("start stream", [&]() { return Pa_StartStream(stream); });
+                util::wrapPortAudioCall("start stream", [&]() { return Pa_StartStream(stream); });
             }
             if (playingSounds.size() <= 2) {
                 playingSounds.push_back(
@@ -100,7 +101,7 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
             break;
         case stop:
             if (!Pa_IsStreamStopped(stream)) {
-                wrapPortAudioCall("stop stream", [&]() { return Pa_StopStream(stream); });
+                util::wrapPortAudioCall("stop stream", [&]() { return Pa_StopStream(stream); });
                 playingSounds.clear();
             }
             break;
@@ -115,7 +116,7 @@ StreamHandler::StreamHandler()
     putenv((char *) "PULSE_LATENCY_MSEC=10");
 #endif
 
-    wrapPortAudioCallOrTerminate("initialize", []() { return Pa_Initialize(); });
+    util::wrapPortAudioCallOrTerminate("initialize", []() { return Pa_Initialize(); });
 
     PaStreamParameters outputParameters {
         .device = Pa_GetDefaultOutputDevice(),
@@ -125,7 +126,7 @@ StreamHandler::StreamHandler()
         .hostApiSpecificStreamInfo = nullptr,
     };
 
-    wrapPortAudioCallOrTerminate("open", [&]() {
+    util::wrapPortAudioCallOrTerminate("open", [&]() {
         return Pa_OpenStream(
             &stream,
             NO_INPUT,
@@ -143,31 +144,7 @@ StreamHandler::~StreamHandler()
 {
     processEvent(AudioEventType::stop);
 
-    wrapPortAudioCallOrTerminate("close", [&]() { return Pa_CloseStream(stream); });
-    wrapPortAudioCall("terminate", []() { return Pa_Terminate(); });
+    util::wrapPortAudioCallOrTerminate("close", [&]() { return Pa_CloseStream(stream); });
+    util::wrapPortAudioCall("terminate", []() { return Pa_Terminate(); });
     stream = nullptr;
-}
-
-void StreamHandler::wrapPortAudioCall(const std::string & description, const std::function<PaError()> & f)
-{
-    PaError error = f();
-    if (error != paNoError) {
-        std::stringstream errorMessage;
-        errorMessage << "Unable to execute PortAudio command " << description << " (" << error << ": " << Pa_GetErrorText(error) << ")";
-        throw std::runtime_error(errorMessage.str());
-    }
-}
-
-void StreamHandler::wrapPortAudioCallOrTerminate(const std::string & description, const std::function<PaError()> & f)
-{
-    PaError error = f();
-    if (error != paNoError) {
-        std::stringstream errorMessage;
-        errorMessage << "Unable to close PortAudio command " << description << " (" << error << ": " << Pa_GetErrorText(error) << ")";
-        PaError terminateError = Pa_Terminate();
-        if (terminateError != paNoError) {
-            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
-        }
-        throw std::runtime_error(errorMessage.str());
-    }
 }

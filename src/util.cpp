@@ -1,6 +1,8 @@
 #include "util.hpp"
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
+#include <portaudio.h>
 
 std::string util::getApplicationPathAndName()
 {
@@ -50,6 +52,31 @@ std::string util::getApplicationPath(const std::string & relativePath)
 {
     std::string fullPath = getApplicationPathAndName();
     return fullPath.substr(0, fullPath.find_last_of('/')) + relativePath;
+}
+
+
+void util::wrapPortAudioCall(const std::string & description, const std::function<PaError()> & f)
+{
+    PaError error = f();
+    if (error != paNoError) {
+        std::stringstream errorMessage;
+        errorMessage << "Unable to execute PortAudio command " << description << " (" << error << ": " << Pa_GetErrorText(error) << ")";
+        throw std::runtime_error(errorMessage.str());
+    }
+}
+
+void util::wrapPortAudioCallOrTerminate(const std::string & description, const std::function<PaError()> & f)
+{
+    PaError error = f();
+    if (error != paNoError) {
+        std::stringstream errorMessage;
+        errorMessage << "Unable to close PortAudio command " << description << " (" << error << ": " << Pa_GetErrorText(error) << ")";
+        PaError terminateError = Pa_Terminate();
+        if (terminateError != paNoError) {
+            errorMessage << "\n" << "Unable to terminate PortAudio (" << terminateError << ": " << Pa_GetErrorText(terminateError) << ")";
+        }
+        throw std::runtime_error(errorMessage.str());
+    }
 }
 
 #if !defined (_WIN32) && !defined (_WIN64)

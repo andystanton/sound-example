@@ -51,9 +51,6 @@ private:
     const unsigned long SAMPLE_RATE = 44000;
     const PaStreamParameters * NO_INPUT = nullptr;
 
-    static void wrapPortAudioCall(const std::string &, const std::function<PaError()> &);
-    static void wrapPortAudioCallOrTerminate(const std::string &, const std::function<PaError()> &);
-
     PaStream * stream;
     std::vector<Playback> playingSounds;
 };

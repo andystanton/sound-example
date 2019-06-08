@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <portaudio.h>
 
 #elif defined (__linux__)
 
@@ -28,6 +29,9 @@ namespace util
     std::string getApplicationPathAndName();
     std::string getApplicationPath();
     std::string getApplicationPath(const std::string &);
+
+    void wrapPortAudioCall(const std::string & description, const std::function<PaError()> & f);
+    void wrapPortAudioCallOrTerminate(const std::string & description, const std::function<PaError()> & f);
 }
 
 #if !defined (_WIN32) && !defined (_WIN64)
