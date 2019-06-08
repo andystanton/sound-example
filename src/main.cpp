@@ -16,10 +16,10 @@ int main(int argc, char ** argv)
         cout << "Playback with PortAudio and libsndfile" << endl << endl;
 
         cout << "Options: " << endl;
-        cout << " O: stereo sound" << endl;
-        cout << " P: mono sound" << endl;
-        cout << " L: loop sound" << endl;
-        cout << " K: stop all sounds" << endl << endl;
+        cout << " o: stereo sound" << endl;
+        cout << " p: mono sound" << endl;
+        cout << " l: loop sound" << endl;
+        cout << " k: stop all sounds" << endl << endl;
 
         cout << "Press 'Q' to quit" << endl;
 
