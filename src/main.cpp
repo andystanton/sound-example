@@ -8,10 +8,51 @@ using std::endl;
 using std::cout;
 using std::cerr;
 
+const int CHANNEL_COUNT = 2;
+
+int portAudioCallback(
+    const void * input,
+    void * output,
+    unsigned long frameCount,
+    const PaStreamCallbackTimeInfo * paTimeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void * userData
+)
+{
+    memset(output, 0, CHANNEL_COUNT * frameCount * sizeof(float));
+    return paContinue;
+}
+
 int main(int argc, char ** argv)
 {
     try {
-        AudioPlayer player;
+        const unsigned long SAMPLE_RATE = 44000;
+        const PaStreamParameters * NO_INPUT = nullptr;
+        PaStream * stream = nullptr;
+#if defined (__linux__)
+        putenv((char *) "PULSE_LATENCY_MSEC=10");
+#endif
+
+        Pa_Initialize();
+
+        PaStreamParameters outputParameters {
+            .device = Pa_GetDefaultOutputDevice(),
+            .channelCount = CHANNEL_COUNT,
+            .sampleFormat = paFloat32,
+            .suggestedLatency = 0.01,
+            .hostApiSpecificStreamInfo = nullptr,
+        };
+
+        Pa_OpenStream(
+            &stream,
+            NO_INPUT,
+            &outputParameters,
+            SAMPLE_RATE,
+            paFramesPerBufferUnspecified,
+            paNoFlag,
+            portAudioCallback,
+            nullptr
+        );
 
         cout << "Playback with PortAudio and libsndfile" << endl << endl;
 
@@ -36,26 +77,40 @@ int main(int argc, char ** argv)
                         break;
                     case 'o':
                     case 'O':
-                        player.play("Powerup14.wav");
+                        if (Pa_IsStreamStopped(stream)) {
+                            Pa_StartStream(stream);
+                        }
+                        //                        player.play("Powerup14.wav");
                         break;
                     case 'p':
                     case 'P':
-                        player.play("Powerup47.wav");
+                        //                        player.play("Powerup47.wav");
                         break;
                     case 'l':
                     case 'L':
-                        player.loop("loop.wav");
+                        //                        player.loop("loop.wav");
                         break;
                     case 'k':
                     case 'K':
-                        player.stop();
+                        //                        player.stop();
+                        if (!Pa_IsStreamStopped(stream)) {
+                            Pa_StopStream(stream);
+                        }
                         break;
                     default:
                         break;
                 }
             }
         }
-        player.stop();
+        //        player.stop();
+
+        if (!Pa_IsStreamStopped(stream)) {
+            Pa_StopStream(stream);
+            //            playingSounds.clear();
+        }
+        Pa_CloseStream(stream);
+        Pa_Terminate();
+        stream = nullptr;
     } catch (const std::runtime_error & error) {
         cerr << "Caught error: " << error.what() << endl;
         return 1;

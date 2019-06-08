@@ -29,8 +29,8 @@ int StreamHandler::PortAudioCallback(
             float outputBuffer[stereoFrameCount];
             float * bufferCursor = outputBuffer;
 
-            auto framesLeft = (unsigned int) frameCount;
-            unsigned int framesRead;
+            unsigned long framesLeft = frameCount;
+            unsigned long framesRead;
 
             bool playbackEnded = false;
             while (framesLeft > 0) {
