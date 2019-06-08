@@ -39,7 +39,7 @@ int StreamHandler::PortAudioCallback(
                 if (framesLeft > (audioFile->info.frames - data.position)) {
                     framesRead = (unsigned int) (audioFile->info.frames - data.position);
                     if (data.loop) {
-                        data.position = 0;
+                        data.position = 0; // TODO: should read from the beginning as well
                     } else {
                         playbackEnded = true;
                         framesLeft = framesRead;

@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
         cout << " l: loop sound" << endl;
         cout << " k: stop all sounds" << endl << endl;
 
-        cout << "Press 'Q' to quit" << endl;
+        cout << "Press 'q' to quit" << endl;
 
         initTerminal();
 
