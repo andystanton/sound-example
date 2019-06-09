@@ -18,7 +18,7 @@ int StreamHandler::PortAudioCallback(
     auto * handler = (StreamHandler *) userData;
 
     unsigned long stereoFrameCount = frameCount * handler->CHANNEL_COUNT;
-    std::memset((int *) output, 0, stereoFrameCount * sizeof(int));
+    std::memset(output, 0, stereoFrameCount * sizeof(float));
 
     if (!handler->playingSounds.empty()) {
         auto it = handler->playingSounds.begin();
