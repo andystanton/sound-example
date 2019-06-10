@@ -29,36 +29,64 @@ int portAudioCallback(
 {
     auto stereoFrameCount = CHANNEL_COUNT * frameCount;
     memset(output, 0, stereoFrameCount * sizeof(float));
-    auto * np = (NowPlaying *) userData;
+    auto * np = (std::vector<NowPlaying> *) userData;
 
-    float outputBuffer[stereoFrameCount];
-    float * bufferCursor = outputBuffer;
+    if (!np->empty()) {
+        auto it = np->begin();
+        while (it != np->end()) {
+            NowPlaying & data = *it;
 
-    unsigned long framesLeft = frameCount;
-    unsigned long framesRead;
+            float outputBuffer[stereoFrameCount];
+            float * bufferCursor = outputBuffer;
 
-    while (framesLeft > 0) {
-        sf_seek(np->audioFile, np->position, SEEK_SET);
+            unsigned long framesLeft = frameCount;
+            unsigned long framesRead;
 
-        if (framesLeft > (np->info.frames - np->position)) {
-            framesRead = (unsigned int) (np->info.frames - np->position);
-            framesLeft = framesRead;
-        } else {
-            framesRead = framesLeft;
-            np->position += framesRead;
+            bool playbackEnded = false;
+            while (framesLeft > 0) {
+                sf_seek(data.audioFile, data.position, SEEK_SET);
+
+                if (framesLeft > (data.info.frames - data.position)) {
+                    framesRead = (unsigned int) (data.info.frames - data.position);
+                    //                    if (data.loop) {
+                    //                        data.position = 0; // TODO: should read from the beginning as well
+                    //                    } else {
+                    playbackEnded = true;
+                    framesLeft = framesRead;
+                    //                    }
+                } else {
+                    framesRead = framesLeft;
+                    data.position += framesRead;
+                }
+
+                sf_readf_float(data.audioFile, bufferCursor, framesRead);
+
+                bufferCursor += framesRead;
+
+                framesLeft -= framesRead;
+            }
+
+            auto * outputCursor = (float *) output;
+            if (data.info.channels == 1) {
+                for (unsigned long i = 0; i < stereoFrameCount; ++i) {
+                    *outputCursor += (0.5 * outputBuffer[i]);
+                    ++outputCursor;
+                    *outputCursor += (0.5 * outputBuffer[i]);
+                    ++outputCursor;
+                }
+            } else {
+                for (unsigned long i = 0; i < stereoFrameCount; ++i) {
+                    *outputCursor += (0.5 * outputBuffer[i]);
+                    ++outputCursor;
+                }
+            }
+
+            if (playbackEnded) {
+                it = np->erase(it);
+            } else {
+                ++it;
+            }
         }
-
-        sf_readf_float(np->audioFile, bufferCursor, framesRead);
-
-        bufferCursor += framesRead;
-
-        framesLeft -= framesRead;
-    }
-
-    auto * outputCursor = (float *) output;
-    for (unsigned long i = 0; i < stereoFrameCount; ++i) {
-        *outputCursor += (0.5 * outputBuffer[i]);
-        ++outputCursor;
     }
 
     return paContinue;
@@ -70,12 +98,9 @@ int main(int argc, char ** argv)
     std::string fullFilename = util::getApplicationPath("/sounds/Powerup47.wav");
     SF_INFO info;
     SNDFILE * audioFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
-    NowPlaying np = {
-        .audioFile = audioFile,
-        .info = info,
-        .position = 0,
-    };
-    printf("channels: %d\n", np.info.channels);
+    printf("channels: %d\n", info.channels);
+
+    std::vector<NowPlaying> nowPlaying;
 
     const unsigned long SAMPLE_RATE = 44000;
     const PaStreamParameters * NO_INPUT = nullptr;
@@ -102,7 +127,7 @@ int main(int argc, char ** argv)
         paFramesPerBufferUnspecified,
         paNoFlag,
         portAudioCallback,
-        &np
+        &nowPlaying
     );
 
     cout << "Playback with PortAudio and libsndfile" << endl << endl;
@@ -129,12 +154,14 @@ int main(int argc, char ** argv)
                     break;
                 case 'o':
                 case 'O':
-                    if (!started) {
-                        started = true;
-                        if (Pa_IsStreamStopped(stream)) {
-                            Pa_StartStream(stream);
-                        }
+                    if (Pa_IsStreamStopped(stream)) {
+                        Pa_StartStream(stream);
                     }
+                    nowPlaying.push_back({
+                        .audioFile = audioFile,
+                        .info = info,
+                        .position = 0,
+                    });
                     //                        player.play("Powerup14.wav");
                     break;
                 case 'p':
@@ -166,7 +193,7 @@ int main(int argc, char ** argv)
     Pa_CloseStream(stream);
     Pa_Terminate();
 
-    sf_close(np.audioFile);
+    sf_close(audioFile);
 
     return 0;
 }
