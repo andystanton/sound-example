@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 using std::endl;
 using std::cout;
@@ -10,13 +11,23 @@ using std::cerr;
 
 const int CHANNEL_COUNT = 2;
 
-
 typedef struct
 {
     SF_INFO info;
     SNDFILE * audioFile;
     int position;
+    bool done;
 } NowPlaying;
+
+enum PlaybackVector{PlaybackNone, PlaybackA, PlaybackB};
+
+typedef struct
+{
+    std::vector<NowPlaying> a;
+    std::vector<NowPlaying> b;
+    volatile PlaybackVector targetPlaybackVector;
+    volatile PlaybackVector actualPlaybackVector;
+} PlaybackItems;
 
 int portAudioCallback(
     const void * input,
@@ -29,9 +40,28 @@ int portAudioCallback(
 {
     auto stereoFrameCount = CHANNEL_COUNT * frameCount;
     memset(output, 0, stereoFrameCount * sizeof(float));
-    auto * np = (std::vector<NowPlaying> *) userData;
+    auto * playbackItems = (PlaybackItems*) userData;
 
-    if (!np->empty()) {
+    std::vector<NowPlaying> * np;
+    PlaybackVector target = playbackItems->targetPlaybackVector;
+    PlaybackVector switchingTo = PlaybackNone;
+    switch (target) {
+        case PlaybackA:
+            np = &playbackItems->a;
+            switchingTo = PlaybackA;
+            break;
+        case PlaybackB:
+            np = &playbackItems->b;
+            switchingTo = PlaybackB;
+            break;
+        case PlaybackNone:
+        default:
+            np = nullptr;
+            switchingTo = PlaybackNone;
+            break;
+    }
+
+    if (np && !np->empty()) {
         auto it = np->begin();
         while (it != np->end()) {
             NowPlaying & data = *it;
@@ -42,18 +72,13 @@ int portAudioCallback(
             unsigned long framesLeft = frameCount;
             unsigned long framesRead;
 
-            bool playbackEnded = false;
             while (framesLeft > 0) {
                 sf_seek(data.audioFile, data.position, SEEK_SET);
 
                 if (framesLeft > (data.info.frames - data.position)) {
                     framesRead = (unsigned int) (data.info.frames - data.position);
-                    //                    if (data.loop) {
-                    //                        data.position = 0; // TODO: should read from the beginning as well
-                    //                    } else {
-                    playbackEnded = true;
                     framesLeft = framesRead;
-                    //                    }
+                    data.done = true;
                 } else {
                     framesRead = framesLeft;
                     data.position += framesRead;
@@ -80,27 +105,32 @@ int portAudioCallback(
                     ++outputCursor;
                 }
             }
-
-            if (playbackEnded) {
-                it = np->erase(it);
-            } else {
-                ++it;
-            }
+            ++it;
         }
     }
-
-    return paContinue;
+    playbackItems->actualPlaybackVector = switchingTo;
+    if (switchingTo == PlaybackNone) {
+        return paAbort;
+    } else {
+        return paContinue;
+    }
 }
 
 
 int main(int argc, char ** argv)
 {
-    std::string fullFilename = util::getApplicationPath("/sounds/Powerup47.wav");
-    SF_INFO info;
-    SNDFILE * audioFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
-    printf("channels: %d\n", info.channels);
+    SF_INFO powerup47Info;
+    SNDFILE * powerup47Data = sf_open(util::getApplicationPath("/sounds/Powerup47.wav").c_str(), SFM_READ, &powerup47Info);
 
-    std::vector<NowPlaying> nowPlaying;
+    SF_INFO powerup14Info;
+    SNDFILE * powerup14Data = sf_open(util::getApplicationPath("/sounds/Powerup14.wav").c_str(), SFM_READ, &powerup14Info);
+
+    PlaybackItems playbackItems = {
+        .a = {},
+        .b = {},
+        .targetPlaybackVector = PlaybackNone,
+        .actualPlaybackVector = PlaybackNone,
+    };
 
     const unsigned long SAMPLE_RATE = 44000;
     const PaStreamParameters * NO_INPUT = nullptr;
@@ -127,7 +157,7 @@ int main(int argc, char ** argv)
         paFramesPerBufferUnspecified,
         paNoFlag,
         portAudioCallback,
-        &nowPlaying
+        &playbackItems
     );
 
     cout << "Playback with PortAudio and libsndfile" << endl << endl;
@@ -145,44 +175,133 @@ int main(int argc, char ** argv)
     bool done = false;
     bool started = false;
     while (!done) {
-        if (kbhit()) {
-            int ch = getchar();
-            switch (ch) {
-                case 'q':
-                case 'Q':
-                    done = true;
-                    break;
-                case 'o':
-                case 'O':
-                    if (Pa_IsStreamStopped(stream)) {
-                        Pa_StartStream(stream);
+        PlaybackVector target = playbackItems.targetPlaybackVector;
+        PlaybackVector actual = playbackItems.actualPlaybackVector;
+        PlaybackVector switchingTo = target;
+
+        if (target == actual) {
+            // TODO: make this more granular - not blocking things like quitting
+
+            switch (actual) {
+                case PlaybackA:
+                    if (std::find_if(playbackItems.a.begin(), playbackItems.a.end(), [](const NowPlaying & item) { return item.done; }) != playbackItems.a.end()) {
+                        playbackItems.b.clear();
+                        playbackItems.b.resize(playbackItems.a.size());
+                        switchingTo = PlaybackB;
+                        std::remove_copy_if(playbackItems.a.begin(), playbackItems.a.end(), playbackItems.b.begin(), [](const NowPlaying & item) { return item.done; });
                     }
-                    nowPlaying.push_back({
-                        .audioFile = audioFile,
-                        .info = info,
-                        .position = 0,
-                    });
-                    //                        player.play("Powerup14.wav");
                     break;
-                case 'p':
-                case 'P':
-                    //                        player.play("Powerup47.wav");
-                    break;
-                case 'l':
-                case 'L':
-                    //                        player.loop("loop.wav");
-                    break;
-                case 'k':
-                case 'K':
-                    //                        player.stop();
-                    if (!Pa_IsStreamStopped(stream)) {
-                        Pa_StopStream(stream);
+                case PlaybackB:
+                    if (std::find_if(playbackItems.b.begin(), playbackItems.b.end(), [](const NowPlaying & item) { return item.done; }) != playbackItems.b.end()) {
+                        playbackItems.a.clear();
+                        playbackItems.a.resize(playbackItems.b.size());
+                        switchingTo = PlaybackA;
+                        std::remove_copy_if(playbackItems.b.begin(), playbackItems.b.end(), playbackItems.a.begin(), [](const NowPlaying & item) { return item.done; });
                     }
                     break;
                 default:
                     break;
             }
-        }
+
+            if (kbhit()) {
+                int ch = getchar();
+                switch (ch) {
+                    case 'q':
+                    case 'Q':
+                        done = true;
+                        break;
+                    case 'o':
+                    case 'O':
+                        if (Pa_IsStreamStopped(stream)) {
+                            Pa_StartStream(stream);
+                        }
+                        switch (actual) {
+                            case PlaybackA:
+                                 if (switchingTo == target) {
+                                     switchingTo = PlaybackB;
+                                     playbackItems.b = playbackItems.a;
+                                 }
+                                 playbackItems.b.push_back({
+                                     .audioFile = powerup47Data,
+                                     .info = powerup47Info,
+                                     .position = 0,
+                                     .done = false,
+                                 });
+                                break;
+                            case PlaybackB:
+                            case PlaybackNone:
+                                if (switchingTo == target) {
+                                    switchingTo = PlaybackA;
+                                    playbackItems.a = playbackItems.b;
+                                }
+                                playbackItems.a.push_back({
+                                    .audioFile = powerup47Data,
+                                    .info = powerup47Info,
+                                    .position = 0,
+                                    .done = false,
+                                });
+                                break;
+                            default:
+                                break;
+                        }
+                        //                        player.play("Powerup14.wav");
+                        break;
+                    case 'p':
+                    case 'P':
+                        if (Pa_IsStreamStopped(stream)) {
+                            Pa_StartStream(stream);
+                        }
+                        switch (actual) {
+                            case PlaybackA:
+                                if (switchingTo == target) {
+                                    switchingTo = PlaybackB;
+                                    playbackItems.b = playbackItems.a;
+                                }
+                                playbackItems.b.push_back({
+                                    .audioFile = powerup14Data,
+                                    .info = powerup14Info,
+                                    .position = 0,
+                                    .done = false,
+                                });
+                                break;
+                            case PlaybackB:
+                            case PlaybackNone:
+                                if (switchingTo == target) {
+                                    switchingTo = PlaybackA;
+                                    playbackItems.a = playbackItems.b;
+                                }
+                                playbackItems.a.push_back({
+                                    .audioFile = powerup14Data,
+                                    .info = powerup14Info,
+                                    .position = 0,
+                                    .done = false,
+                                });
+                                break;
+                            default:
+                                break;
+                        }
+                        //                        player.play("Powerup47.wav");
+                        break;
+                    case 'l':
+                    case 'L':
+                        //                        player.loop("loop.wav");
+                        break;
+                    case 'k':
+                    case 'K':
+                        //                        player.stop();
+                        if (!Pa_IsStreamStopped(stream)) {
+                            Pa_StopStream(stream);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            playbackItems.targetPlaybackVector = switchingTo;
+
+        } // otherwise callback hasn't caught up yet
+
+
     }
     //        player.stop();
 
@@ -193,7 +312,8 @@ int main(int argc, char ** argv)
     Pa_CloseStream(stream);
     Pa_Terminate();
 
-    sf_close(audioFile);
+    sf_close(powerup14Data);
+    sf_close(powerup47Data);
 
     return 0;
 }
