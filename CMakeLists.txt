@@ -13,15 +13,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     )
 endif()
 
-# Modern C++ standard setting
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Use FetchContent instead of ExternalProject for better integration
 include(FetchContent)
 
-# libsndfile - now has CMake support
 FetchContent_Declare(
     libsndfile
     GIT_REPOSITORY https://github.com/libsndfile/libsndfile.git
@@ -32,7 +29,6 @@ FetchContent_Declare(
 # Work around CMake version requirement in libsndfile 1.2.2
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
-# PortAudio - using GitHub mirror instead of SVN
 FetchContent_Declare(
     portaudio
     GIT_REPOSITORY https://github.com/PortAudio/portaudio.git
@@ -64,7 +60,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(PLATFORM_LIBS rt asound jack pthread)
 endif()
 
-# Main executable
 add_executable(sound-example
     src/main.cpp
     src/util.cpp
@@ -73,7 +68,6 @@ add_executable(sound-example
     src/AudioPlayer.cpp
 )
 
-# Modern target-based properties
 target_compile_features(sound-example PRIVATE cxx_std_14)
 
 target_include_directories(sound-example

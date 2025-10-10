@@ -2,14 +2,16 @@
 
 #include "StreamHandler.hpp"
 #include "FileHandler.hpp"
+#include <string>
 
-class AudioPlayer
-{
+class AudioPlayer {
 public:
     AudioPlayer();
 
-    void play(string soundfile);
-    void loop(string soundfile);
+    void play(const std::string & soundfile);
+
+    void loop(const std::string & soundfile);
+
     void stop();
 
 private:

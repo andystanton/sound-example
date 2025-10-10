@@ -1,46 +1,30 @@
 #include "FileHandler.hpp"
+#include <stdexcept>
+#include <sstream>
 
-FileHandler::FileHandler()
-        : sounds()
-{
+using std::string;
+using std::stringstream;
 
+bool FileHandler::containsSound(const string & filename) const {
+    return sounds.find(filename) != sounds.end();
 }
 
-FileHandler::~FileHandler()
-{
-        for (auto entry : sounds)
-        {
-                sf_close(entry.second.data);
+AudioFile *FileHandler::getSound(const string & filename) {
+    if (!containsSound(filename)) {
+        const string fullFilename = util::getApplicationPath() + "/sounds/" + filename;
+        SF_INFO info;
+        info.format = 0;
+        SNDFILE * rawFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
+
+        if (!rawFile) {
+            stringstream error;
+            error << "Unable to open audio file '"
+                    << filename << "' with full filename '"
+                    << fullFilename << "'";
+            throw std::runtime_error(error.str());
         }
-}
 
-bool FileHandler::containsSound(string filename)
-{
-        return sounds.find(filename) != sounds.end();
-}
-
-AudioFile & FileHandler::getSound(string filename)
-{
-        if (!containsSound(filename)) {
-                string fullFilename = util::getApplicationPath() + "/sounds/" + filename;
-                SF_INFO info;
-                info.format = 0;
-                SNDFILE * audioFile = sf_open(fullFilename.c_str(), SFM_READ, &info);
-
-                AudioFile sound {
-                        audioFile,
-                        info
-                };
-
-                if (!audioFile)
-                {
-                        stringstream error;
-                        error << "Unable to open audio file '"
-                              << filename << "' with full filename '"
-                              << fullFilename << "'";
-                        throw error.str();
-                }
-                sounds[filename] = sound;
-        }
-        return sounds[filename];
+        sounds.emplace(filename, AudioFile(rawFile, info));
+    }
+    return &sounds.at(filename);
 }

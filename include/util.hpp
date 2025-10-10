@@ -23,16 +23,15 @@
 
 #endif
 
-using std::string;
+namespace util {
+    std::string getApplicationPathAndName();
 
-namespace util
-{
-    string getApplicationPathAndName();
-    string getApplicationPath();
+    std::string getApplicationPath();
 
 #if not defined (_WIN32) && not defined (_WIN64)
 
     void changemode(int dir);
+
     int kbhit();
 
 #endif
