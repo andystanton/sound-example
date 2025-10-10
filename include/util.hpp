@@ -23,12 +23,10 @@
 
 #endif
 
-using std::string;
-
 namespace util
 {
-    string getApplicationPathAndName();
-    string getApplicationPath();
+    std::string getApplicationPathAndName();
+    std::string getApplicationPath();
 
 #if not defined (_WIN32) && not defined (_WIN64)
 

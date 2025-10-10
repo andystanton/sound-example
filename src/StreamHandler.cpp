@@ -1,39 +1,46 @@
 #include "StreamHandler.hpp"
+#include <stdexcept>
+#include <sstream>
+#include <cstring>
+
+using std::stringstream;
 
 int StreamHandler::PortAudioCallback(const void * input,
                                      void * output,
-                                     unsigned long frameCount,
+                                     const unsigned long frameCount,
                                      const PaStreamCallbackTimeInfo * paTimeInfo,
                                      PaStreamCallbackFlags statusFlags,
                                      void * userData)
 {
-        StreamHandler * handler = (StreamHandler *) userData;
+        auto * handler = static_cast<StreamHandler *>(userData);
 
-        unsigned long stereoFrameCount = frameCount * handler->CHANNEL_COUNT;
-        memset((int *) output, 0, stereoFrameCount * sizeof(int));
+        const unsigned long stereoFrameCount = frameCount * handler->CHANNEL_COUNT;
+        std::memset(output, 0, stereoFrameCount * sizeof(int));
 
-        if (handler->data.size() > 0)
+        std::lock_guard<std::mutex> lock(handler->dataMutex);
+
+        if (!handler->data.empty())
         {
                 auto it = handler->data.begin();
                 while (it != handler->data.end())
                 {
-                        Playback * data = (*it);
-                        AudioFile * audioFile = data->audioFile;
+                        Playback * data = it->get();
+                        const AudioFile * audioFile = data->audioFile;
 
-                        int * outputBuffer = new int[stereoFrameCount];
-                        int * bufferCursor = outputBuffer;
+                        std::vector<int> outputBuffer(stereoFrameCount);
+                        int * bufferCursor = outputBuffer.data();
 
-                        unsigned int framesLeft = (unsigned int) frameCount;
+                        auto framesLeft = static_cast<unsigned int>(frameCount);
                         unsigned int framesRead;
 
                         bool playbackEnded = false;
                         while (framesLeft > 0)
                         {
-                                sf_seek(audioFile->data, data->position, SEEK_SET);
+                                sf_seek(audioFile->getData(), data->position, SEEK_SET);
 
-                                if (framesLeft > (audioFile->info.frames - data->position))
+                                if (framesLeft > (audioFile->getInfo().frames - data->position))
                                 {
-                                        framesRead = (unsigned int) (audioFile->info.frames - data->position);
+                                        framesRead = static_cast<unsigned int>(audioFile->getInfo().frames - data->position);
                                         if (data->loop)
                                         {
                                                 data->position = 0;
@@ -45,10 +52,10 @@ int StreamHandler::PortAudioCallback(const void * input,
                                 } else
                                 {
                                         framesRead = framesLeft;
-                                        data->position += framesRead;
+                                        data->position += static_cast<int>(framesRead);
                                 }
 
-                                sf_readf_int(audioFile->data, bufferCursor, framesRead);
+                                sf_readf_int(audioFile->getData(), bufferCursor, framesRead);
 
                                 bufferCursor += framesRead;
 
@@ -56,19 +63,19 @@ int StreamHandler::PortAudioCallback(const void * input,
                         }
 
 
-                        int * outputCursor = (int *) output;
-                        if (audioFile->info.channels == 1) {
+                        auto outputCursor = static_cast<int *>(output);
+                        if (audioFile->getInfo().channels == 1) {
                                 for (unsigned long i = 0; i < stereoFrameCount; ++i)
                                 {
-                                        *outputCursor += (0.5 * outputBuffer[i]);
+                                        *outputCursor += static_cast<int>(0.5 * outputBuffer[i]);
                                         ++outputCursor;
-                                        *outputCursor += (0.5 * outputBuffer[i]);
+                                        *outputCursor += static_cast<int>(0.5 * outputBuffer[i]);
                                         ++outputCursor;
                                 }
                         } else {
                                 for (unsigned long i = 0; i < stereoFrameCount; ++i)
                                 {
-                                        *outputCursor += (0.5 * outputBuffer[i]);
+                                        *outputCursor += static_cast<int>(0.5 * outputBuffer[i]);
                                         ++outputCursor;
                                 }
                         }
@@ -76,7 +83,6 @@ int StreamHandler::PortAudioCallback(const void * input,
 
                         if (playbackEnded) {
                                 it = handler->data.erase(it);
-                                delete data;
                         } else
                         {
                                 ++it;
@@ -88,25 +94,45 @@ int StreamHandler::PortAudioCallback(const void * input,
 
 void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audioFile, bool loop)
 {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         switch (audioEventType) {
         case start:
-                if (Pa_IsStreamStopped(stream))
+                for (const auto& playback : data)
                 {
-                        Pa_StartStream(stream);
+                        if (playback->audioFile == audioFile)
+                        {
+                                return;
+                        }
                 }
 
-                data.push_back(new Playback {
+                if (Pa_IsStreamStopped(stream))
+                {
+                        PaError err = Pa_StartStream(stream);
+                        if (err != paNoError)
+                        {
+                                stringstream error;
+                                error << "Failed to start stream: " << Pa_GetErrorText(err);
+                                throw std::runtime_error(error.str());
+                        }
+                }
+
+                data.push_back(std::make_unique<Playback>(Playback{
                         audioFile,
                         0,
                         loop
-                });
+                }));
 
                 break;
         case stop:
-                Pa_StopStream(stream);
-                for (auto instance : data)
                 {
-                        delete instance;
+                        PaError err = Pa_StopStream(stream);
+                        if (err != paNoError && err != paStreamIsStopped)
+                        {
+                                stringstream error;
+                                error << "Failed to stop stream: " << Pa_GetErrorText(err);
+                                throw std::runtime_error(error.str());
+                        }
                 }
                 data.clear();
                 break;
@@ -114,22 +140,35 @@ void StreamHandler::processEvent(AudioEventType audioEventType, AudioFile * audi
 }
 
 StreamHandler::StreamHandler()
-        : data()
+        : stream()
 {
 
 #if defined (__linux__)
-        putenv("PULSE_LATENCY_MSEC=10")
+        putenv(const_cast<char*>("PULSE_LATENCY_MSEC=10"));
 #endif
 
-        Pa_Initialize();
-        PaError errorCode;
+        PaError errorCode = Pa_Initialize();
+        if (errorCode != paNoError)
+        {
+                stringstream error;
+                error << "Failed to initialize PortAudio: " << Pa_GetErrorText(errorCode);
+                throw std::runtime_error(error.str());
+        }
+
         PaStreamParameters outputParameters;
 
-        outputParameters.device = Pa_GetDefaultOutputDevice();
+        PaDeviceIndex defaultDevice = Pa_GetDefaultOutputDevice();
+        if (defaultDevice == paNoDevice)
+        {
+                Pa_Terminate();
+                throw std::runtime_error("No default output device found");
+        }
+
+        outputParameters.device = defaultDevice;
         outputParameters.channelCount = CHANNEL_COUNT;
         outputParameters.sampleFormat = paInt32;
         outputParameters.suggestedLatency = 0.01;
-        outputParameters.hostApiSpecificStreamInfo = 0;
+        outputParameters.hostApiSpecificStreamInfo = nullptr;
 
         errorCode = Pa_OpenStream(&stream,
                                   NO_INPUT,
@@ -140,22 +179,22 @@ StreamHandler::StreamHandler()
                                   &PortAudioCallback,
                                   this);
 
-        if (errorCode)
+        if (errorCode != paNoError)
         {
                 Pa_Terminate();
 
                 stringstream error;
-                error << "Unable to open stream for output. Portaudio error code: " << errorCode;
-                throw error.str();
+                error << "Unable to open stream for output: " << Pa_GetErrorText(errorCode);
+                throw std::runtime_error(error.str());
         }
 }
 
 StreamHandler::~StreamHandler()
 {
         Pa_CloseStream(stream);
-        for (auto wrapper : data)
         {
-                delete wrapper;
+                std::lock_guard<std::mutex> lock(dataMutex);
+                data.clear();
         }
         Pa_Terminate();
 }

@@ -9,12 +9,9 @@
     #include <cstdlib> // required for putenv.
 #endif
 
-#include <cstring>
-#include <sstream>
 #include <vector>
-
-using std::stringstream;
-using std::vector;
+#include <mutex>
+#include <memory>
 
 struct Playback
 {
@@ -50,5 +47,6 @@ class StreamHandler
         const PaStreamParameters * NO_INPUT = nullptr;
 
         PaStream * stream;
-        vector<Playback *> data;
+        std::vector<std::unique_ptr<Playback>> data;
+        std::mutex dataMutex;
 };

@@ -57,9 +57,9 @@ int main(int argc, char ** argv)
                         }
                 }
                 util::changemode(0);
-        } catch (const char * error)
+        } catch (const std::exception& error)
         {
-            cerr << "Caught error: " << error << endl;
+            cerr << "Caught error: " << error.what() << endl;
         }
 
         return 0;

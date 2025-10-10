@@ -1,4 +1,7 @@
 #include "util.hpp"
+#include <stdexcept>
+
+using std::string;
 
 string util::getApplicationPathAndName()
 {
@@ -6,19 +9,15 @@ string util::getApplicationPathAndName()
 
 #if defined (__APPLE__) && defined (__MACH__)
 
-        int ret;
-        pid_t pid;
         char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
 
-        pid = getpid();
-        ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
+        pid_t pid = getpid();
+        const int ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
         if (ret <= 0)
         {
-                throw string("Unable to ascertain application path");
-        } else
-        {
-                fullPath = pathbuf;
+                throw std::runtime_error("Unable to ascertain application path");
         }
+        fullPath = pathbuf;
 
 #elif defined (__linux__)
 
@@ -28,12 +27,12 @@ string util::getApplicationPathAndName()
                 buff[len] = '\0';
                 fullPath = buff;
         } else {
-                throw string("Unable to ascertain application path");
+                throw std::runtime_error("Unable to ascertain application path");
         }
 
 #else
 
-        throw string("OS not supported for finding paths");
+        throw std::runtime_error("OS not supported for finding paths");
 
 #endif
 
@@ -42,15 +41,15 @@ string util::getApplicationPathAndName()
 
 string util::getApplicationPath()
 {
-        string fullPath = getApplicationPathAndName();
-        return fullPath.substr(0, fullPath.find_last_of("/"));
+        const string fullPath = getApplicationPathAndName();
+        return fullPath.substr(0, fullPath.find_last_of('/'));
 }
 
 #if not defined (_WIN32) && not defined (_WIN64)
 
-void util::changemode(int dir)
+void util::changemode(const int dir)
 {
-        static struct termios oldt, newt;
+        static termios oldt, newt;
 
         if (dir == 1)
         {
@@ -67,7 +66,7 @@ void util::changemode(int dir)
 
 int util::kbhit()
 {
-        struct timeval tv;
+        timeval tv {};
         fd_set rdfs;
 
         tv.tv_sec = 0;
@@ -76,7 +75,7 @@ int util::kbhit()
         FD_ZERO(&rdfs);
         FD_SET(STDIN_FILENO, &rdfs);
 
-        select(STDIN_FILENO + 1, &rdfs, NULL, NULL, &tv);
+        select(STDIN_FILENO + 1, &rdfs, nullptr, nullptr, &tv);
 
         return FD_ISSET(STDIN_FILENO, &rdfs);
 }
