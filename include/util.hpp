@@ -23,14 +23,15 @@
 
 #endif
 
-namespace util
-{
+namespace util {
     std::string getApplicationPathAndName();
+
     std::string getApplicationPath();
 
 #if not defined (_WIN32) && not defined (_WIN64)
 
     void changemode(int dir);
+
     int kbhit();
 
 #endif

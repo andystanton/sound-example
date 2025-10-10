@@ -6,47 +6,50 @@
 #include "portaudio.h"
 
 #if defined (__linux__)
-    #include <cstdlib> // required for putenv.
+#include <cstdlib> // required for putenv.
 #endif
 
 #include <vector>
 #include <mutex>
 #include <memory>
 
-struct Playback
-{
-        AudioFile * audioFile;
-        int position;
-        bool loop;
+struct Playback {
+    AudioFile * audioFile;
+    int position;
+    bool loop;
 };
 
-enum AudioEventType
-{
-        start, stop
+enum AudioEventType {
+    start, stop
 };
 
-class StreamHandler
-{
-    public:
-        StreamHandler();
-        ~StreamHandler();
+class StreamHandler {
+public:
+    StreamHandler();
 
-        void processEvent(AudioEventType audioEventType,
-                          AudioFile * audioFile = nullptr,
-                          bool loop = false);
+    ~StreamHandler();
 
-        static int PortAudioCallback(const void * input,
-                                     void * output,
-                                     unsigned long frameCount,
-                                     const PaStreamCallbackTimeInfo * paTimeInfo,
-                                     PaStreamCallbackFlags statusFlags,
-                                     void * userData);
-    private:
-        const int CHANNEL_COUNT = 2;
-        const int SAMPLE_RATE = 44000;
-        const PaStreamParameters * NO_INPUT = nullptr;
+    void processEvent(
+        AudioEventType audioEventType,
+        AudioFile * audioFile = nullptr,
+        bool loop = false
+    );
 
-        PaStream * stream;
-        std::vector<std::unique_ptr<Playback>> data;
-        std::mutex dataMutex;
+    static int PortAudioCallback(
+        const void * input,
+        void * output,
+        unsigned long frameCount,
+        const PaStreamCallbackTimeInfo * paTimeInfo,
+        PaStreamCallbackFlags statusFlags,
+        void * userData
+    );
+
+private:
+    const int CHANNEL_COUNT = 2;
+    const int SAMPLE_RATE = 44000;
+    const PaStreamParameters * NO_INPUT = nullptr;
+
+    PaStream * stream;
+    std::vector<std::unique_ptr<Playback> > data;
+    std::mutex dataMutex;
 };
